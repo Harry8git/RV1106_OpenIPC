@@ -1,0 +1,40 @@
+#!/bin/sh
+
+DAEMON="/usr/bin/divinus"
+PIDFILE="/var/run/divinus.pid"
+
+start() {
+    echo -n "Starting divinus streamer: "
+    start-stop-daemon -S -b -m -p "$PIDFILE" -x "$DAEMON" -- -c /etc/divinus.yaml
+    [ $? = 0 ] && echo "OK" || echo "FAIL"
+}
+
+stop() {
+    echo -n "Stopping divinus streamer: "
+    start-stop-daemon -K -q -p "$PIDFILE"
+    [ $? = 0 ] && echo "OK" || echo "FAIL"
+    rm -f "$PIDFILE"
+}
+
+restart() {
+    stop
+    sleep 1
+    start
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart|reload)
+        restart
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart}"
+        exit 1
+esac
+
+exit $?
