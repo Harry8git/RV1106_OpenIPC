@@ -1,0 +1,41 @@
+--- a/src/hal/plus/rk_hal.c	2026-09-18 15:47:11.297069148 -0600
++++ b/src/hal/plus/rk_hal.c	2026-09-18 15:47:11.371105082 -0600
+@@ -28,6 +28,7 @@
+ char _rk_vpss_grp = 0;
+ static void *_rk_uclibc_compat = NULL;
+ static void *_rk_rga = NULL;
++static void *_rk_mpp = NULL;
+ 
+ void rk_hal_deinit(void)
+ {
+@@ -40,10 +41,13 @@
+     rk_aiq_unload(&rk_aiq);
+     rk_sys_unload(&rk_sys);
+ 
++    if (_rk_mpp)
++        dlclose(_rk_mpp);
+     if (_rk_rga)
+         dlclose(_rk_rga);
+     if (_rk_uclibc_compat)
+         dlclose(_rk_uclibc_compat);
++    _rk_mpp = NULL;
+     _rk_rga = NULL;
+     _rk_uclibc_compat = NULL;
+ }
+@@ -64,6 +68,16 @@
+         dlclose(_rk_uclibc_compat);
+         _rk_uclibc_compat = NULL;
+         return EXIT_FAILURE;
++    }
++
++    _rk_mpp = dlopen("librockchip_mpp.so.1", RTLD_LAZY | RTLD_GLOBAL);
++    if (!_rk_mpp) {
++        HAL_ERROR("rk_hal", "Failed to load librockchip_mpp.so.1!\nError: %s\n", dlerror());
++        dlclose(_rk_rga);
++        _rk_rga = NULL;
++        dlclose(_rk_uclibc_compat);
++        _rk_uclibc_compat = NULL;
++        return EXIT_FAILURE;
+     }
+ 
+     if (ret = rk_sys_load(&rk_sys))

@@ -5,6 +5,7 @@ PIDFILE="/var/run/divinus.pid"
 
 start() {
     echo -n "Starting divinus streamer: "
+    export LD_PRELOAD="/usr/lib/libuclibc-compat.so /usr/lib/librga.so"
     start-stop-daemon -S -b -m -p "$PIDFILE" -x "$DAEMON" -- -c /etc/divinus.yaml
     [ $? = 0 ] && echo "OK" || echo "FAIL"
 }

@@ -1,0 +1,59 @@
+--- a/src/compat.c	2026-09-09 20:31:37.000000000 -0600
++++ b/src/compat.c	2026-09-18 15:40:07.646736242 -0600
+@@ -1,5 +1,6 @@
+ #include <math.h>
+ #include <stdint.h>
++#include <stdarg.h>
+ #include <stdio.h>
+ #include <sys/syscall.h>
+ #include <unistd.h>
+@@ -56,15 +57,46 @@
+ double __log_finite(double x) { return log(x); }
+ 
+ #if defined(__arm__) || defined(__aarch64__) || defined(__mips__)
+-void *mmap(void *start, size_t len, int prot, int flags, int fd, uint32_t off) {
++static uint32_t pick_mmap_offset(uint32_t slot_a, uint32_t slot_b)
++{
++    if ((slot_a & 0xFFF) == 0)
++        return slot_a;
++    return slot_b;
++}
++
++void *mmap(void *start, size_t len, int prot, int flags, int fd, ...)
++{
++    va_list ap;
++    va_start(ap, fd);
++    uint32_t slot_a = va_arg(ap, uint32_t);
++    uint32_t slot_b = va_arg(ap, uint32_t);
++    va_end(ap);
++
++    uint32_t off = pick_mmap_offset(slot_a, slot_b);
+     return (void*)syscall(SYS_mmap2, start, len, prot, flags, fd, off >> 12);
+ }
+ 
+-void *__mmap64(void *start, size_t len, int prot, int flags, int fd, off_t off) {
++void *__mmap64(void *start, size_t len, int prot, int flags, int fd, ...)
++{
++    va_list ap;
++    va_start(ap, fd);
++    uint32_t slot_a = va_arg(ap, uint32_t);
++    uint32_t slot_b = va_arg(ap, uint32_t);
++    va_end(ap);
++
++    uint32_t off = pick_mmap_offset(slot_a, slot_b);
+     return (void*)syscall(SYS_mmap2, start, len, prot, flags, fd, off >> 12);
+ }
+ #if !(defined(__ARM_PCS_VFP) && defined(__UCLIBC__))
+-void *mmap64(void *start, size_t len, int prot, int flags, int fd, off_t off) {
++void *mmap64(void *start, size_t len, int prot, int flags, int fd, ...)
++{
++    va_list ap;
++    va_start(ap, fd);
++    uint32_t slot_a = va_arg(ap, uint32_t);
++    uint32_t slot_b = va_arg(ap, uint32_t);
++    va_end(ap);
++
++    uint32_t off = pick_mmap_offset(slot_a, slot_b);
+     return (void*)syscall(SYS_mmap2, start, len, prot, flags, fd, off >> 12);
+ }
+ #endif
